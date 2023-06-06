@@ -14,7 +14,7 @@ int main()
 	{
 		ini_parser parser("test.ini");
 		auto value = parser.get_value<std::string>("Section1.var1");
-
+		std::cout << value;
 		//auto value = parser.get_value<int>("Section1.var2");
 	}
 	catch (std::exception& ex)

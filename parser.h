@@ -1,3 +1,4 @@
+#define MODE 0  // 1 - DEBUGING
 #pragma once
 #include <iostream>
 #include <fstream>
@@ -5,11 +6,15 @@
 #include <vector>
 #include <algorithm>
 #include <map>
+#include <regex>
 
 //*
 //  Парсер INI-файлов, который предоставляет для пользователя одну шаблонную функцию, позволяющую получить значение переменной в определённой секции.
 //  ini_parser parser("filename")
 //  auto value = parser.get_value<int>("section.value")
+//	#########################################################
+//	***  В русской локализации дробные значения не выдает ***
+//	#########################################################
 class ini_parser
 {
 	std::multimap<std::string, std::map<std::string, std::string>> data;	// контейнер распознанных данных
@@ -18,49 +23,77 @@ public:
 	ini_parser(const std::string&);
 	~ini_parser();
 
-	template<class T> T get_value(std::string section_value)
+	template<class T> T get_value(std::string section_value) 
+	//template<> double get_value(std::string section_value)
 	{
-		auto digit = [](auto a) { if ('0' <= *a && *a <= '9') return true; else return false; };
-		auto dot = [](auto a) { if (*a == '.') return true; else return false; };
-		std::string a = value_in_section(section_value);
-		return 0;
+		auto name = [](std::string string)
+		{
+			int d = string.find('.');
+			std::string	first = string.substr(0, d);
+			std::string	second = string.substr(d + 1, string.size() - d);
+			std::pair<std::string, std::string> name = { first, second };
+			return name;
+		};
+
+		std::pair<std::string, std::string> p = name(section_value);
+
+		if (data.find(p.first) == data.end())
+			throw std::runtime_error("Warning! Section  " + p.first + " is not found");
+
+		auto f = *data.find(p.first);
+
+
+		//auto f1 = f.second.find(p.second);
+
+
+		if ((f.second.find(p.second) == f.second.end()))
+		{
+			std::cout << "Warning! " << p.first << " is contain:\n";
+			for (auto a : f.second)
+			{
+				std::cout << "  " << a.first << ";\n";
+			}
+			throw std::runtime_error("  " + p.second + " - is not found");
+		}
+
+	
+		std::string g = f.second[p.second];
+
+		std::regex r("([-]?)([\\d]*)"
+					 "([\\.]?[\\d]*)"
+					 "([e|E]?)([-]?)([\\d\\s]*)");
+		
+		if (!(std::regex_match(g.c_str(), r)))
+		{
+			throw std::runtime_error("Warning! Number error in the " + p.first + " : " + p.second);
+		}
+
+		return std::stod(g);
 	}
 
-	template<> std::string get_value<std::string>(std::string section_value)
+	template<> std::string get_value(std::string section_value)
 	{
-		std::string a = value_in_section(section_value);
-		return a;
-	}
+		auto name = [](std::string string)
+		{
+			int d = string.find('.');
+			std::string	first = string.substr(0, d);
+			std::string	second = string.substr(d + 1, string.size() - d);
+			std::pair<std::string, std::string> name = { first, second };
+			return name;
+		};
 
+		std::pair<std::string, std::string> p = name(section_value);
+
+		if (data.find(p.first) == data.end())
+			throw std::runtime_error("Warning! Section  " + p.first + " is not found");
+
+		auto f = *data.find(p.first);
+		auto g = f.second[p.second];
+
+		return g;
+	}
 
 private:
-	//std::string filename;											// имя файла
-	//std::ifstream fin;												// файл
-	//std::string str = "";											// ini
-
-
-	//std::vector<std::pair<std::string::iterator, int>> line_id;		// идентификатор линии (позиция, тип)
 	
-	std::string result = "";
 
-//*
-// Возвращает конец описания секции
-	std::string::iterator end_section(std::string::iterator);
-
-//*
-// Возвращает конец строки
-	std::string::iterator end_line(std::string::iterator&);
-
-//*
-// Возвращает конец имени переменной
-	std::string::iterator end_value(std::string::iterator&);
-
-////*
-//// Возвращает данные, соответствующие section.value
-//	std::string value_in_section(std::string);
-//};
-
-//*
-// Возвращает данные, соответствующие section.value
-std::string value_in_section(std::string&);
 };

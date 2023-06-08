@@ -1,4 +1,5 @@
-﻿#include "parser.h"
+﻿#define MODE 0  // 1 - DEBUGING
+#include "parser.h"
 
 ini_parser::ini_parser(const std::string& filename)
 {
@@ -87,8 +88,9 @@ ini_parser::ini_parser(const std::string& filename)
 			auto it_end_name = end_name(it_current, SECTION);
 			++it_current;
 			trace_section = name(it_begin_name, it_end_name);
+#if MODE == 1
 			std::cout << trace_section << '\n';
-
+#endif
 			auto it = data.find(trace_section);
 			if (it == data.end())
 			{
@@ -97,17 +99,19 @@ ini_parser::ini_parser(const std::string& filename)
 				data.emplace(trace_section, blank);
 			}
 			it_current = end_line(it_current) + 1;
-
+			++line_number;
 			break;
 		}
 		case ';':
 		{
 			it_current = end_line(it_current) + 1;
+			++line_number;
 			break;
 		}
 		case '\n':
 		{
 			++it_current;
+			++line_number;
 			break;
 		}
 		case ' ':
@@ -120,15 +124,18 @@ ini_parser::ini_parser(const std::string& filename)
 			auto it_begin_name = it_current;
 			auto it_end_name = end_name(it_current, VALUE);
 			std::string name_value = name(it_begin_name, it_end_name);
+#if MODE == 1
 			std::cout << " -> " << name_value << '\n';
-
+#endif
 			auto it = data.find(trace_section);
 			if (it != data.end())
 			{
 				it->second.insert_or_assign(name_value, volume(it_current));
+				if (it->second.find("") != it->second.end())
+					it->second.erase("");
 			}
 			it_current = end_line(it_current) + 1;
-
+			++line_number;
 			break;
 		}
 	//		break;
@@ -140,10 +147,3 @@ ini_parser::~ini_parser()
 {
 	//fin.close();
 }
-
-
-std::string ini_parser::value_in_section(std::string& section_value)
-{
-	return section_value;
-}
-
